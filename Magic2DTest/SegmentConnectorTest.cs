@@ -89,7 +89,7 @@ namespace Magic2DTest
             an.bones.Add(new BoneAnnotation(an.joints[1], an.joints[2]));
 
             var _seg1 = new Segment("seg1", null);
-            _seg1.path = circlePoints(100, 100, 30, 20);
+            _seg1.path = Util.circlePoints(100, 100, 30, 20);
             _seg1.section = _seg1.path.Take(5).ToList();
             _seg1.an = new SkeletonAnnotation(null);
             _seg1.an.joints.Add(new JointAnnotation("0", new PointF(100, 100)));
@@ -97,7 +97,7 @@ namespace Magic2DTest
             _seg1.an.bones.Add(new BoneAnnotation(_seg1.an.joints[0], _seg1.an.joints[1]));
 
             var _seg2 = new Segment("seg2", null);
-            _seg2.path = circlePoints(200, 200, 60, 20);
+            _seg2.path = Util.circlePoints(200, 200, 60, 20);
             _seg2.section = _seg2.path.Skip(10).Take(4).Concat(_seg2.path.Skip(15).Take(4)).ToList();
             _seg2.an = new SkeletonAnnotation(null);
             _seg2.an.joints.Add(new JointAnnotation("0", new PointF(100, 100)));
@@ -107,7 +107,7 @@ namespace Magic2DTest
             _seg2.an.bones.Add(new BoneAnnotation(_seg2.an.joints[1], _seg2.an.joints[2]));
 
             var _seg3 = new Segment("seg3", null);
-            _seg3.path = circlePoints(300, 150, 90, 20);
+            _seg3.path = Util.circlePoints(300, 150, 90, 20);
             _seg3.section = _seg3.path.Skip(5).Take(5).ToList();
             _seg3.an = new SkeletonAnnotation(null);
             _seg3.an.joints.Add(new JointAnnotation("1", new PointF(200, 200)));
@@ -129,17 +129,6 @@ namespace Magic2DTest
             Assert.AreEqual(_pairs[1].meshInfo2, seg3);
         }
 
-        public List<PointF> circlePoints(int cx, int cy, int r, int num)
-        {
-            List<PointF> pts = new List<PointF>();
-            for (int i = 0; i < num; i++)
-            {
-                double rad = 2 * Math.PI * i / num;
-                pts.Add(new PointF(cx + r * (float)Math.Cos(rad), cy + r * (float)Math.Sin(rad)));
-            }
-            return pts;
-        }
-        
         /// <summary>
         ///SectionToCurves のテスト
         ///</summary>
@@ -160,7 +149,7 @@ namespace Magic2DTest
             bmp.Save("../../../particleTex.png");
 
 
-            var path = circlePoints(100, 100, 50, 20);
+            var path = Util.circlePoints(100, 100, 50, 20);
 
             Assert.IsNull(SegmentConnector_Accessor.SectionToCurves(null, new CharacterRange(0, 6), 5, 60));
             Assert.IsNull(SegmentConnector_Accessor.SectionToCurves(new List<PointF>(), new CharacterRange(0, 6), 5, 60));
@@ -197,7 +186,7 @@ namespace Magic2DTest
             Assert.AreEqual(curves.Item2.First, 6);
             Assert.AreEqual(curves.Item2.Length, 3);
 
-            path = circlePoints(50, 100, 40, 20);
+            path = Util.circlePoints(50, 100, 40, 20);
             curves = SegmentConnector_Accessor.SectionToCurves(path, new CharacterRange(0, 5), 5, 30);
             Assert.AreEqual(curves.Item1.First, 16);
             Assert.AreEqual(curves.Item1.Length, 5);
@@ -215,8 +204,8 @@ namespace Magic2DTest
         public void AdjustRotationTest()
         {
             List<SegmentMeshInfo> ms = new List<SegmentMeshInfo>();
-            var path1 = circlePoints(100, 100, 40, 20);
-            var path2 = circlePoints(200, 200, 30, 20);
+            var path1 = Util.circlePoints(100, 100, 40, 20);
+            var path2 = Util.circlePoints(200, 200, 30, 20);
             var r1 =  new CharacterRange(0, 5);
             var r2 =  new CharacterRange(10, 5);
             var section1 = path1.Skip(r1.First).Take(r1.Length).ToList();
@@ -249,8 +238,8 @@ namespace Magic2DTest
         public void AdjustScaleTest()
         {
             List<SegmentMeshInfo> ms = new List<SegmentMeshInfo>();
-            var path1 = circlePoints(100, 100, 40, 20);
-            var path2 = circlePoints(200, 200, 30, 20);
+            var path1 = Util.circlePoints(100, 100, 40, 20);
+            var path2 = Util.circlePoints(200, 200, 30, 20);
             var r1 = new CharacterRange(0, 5);
             var r2 = new CharacterRange(10, 5);
             var section1 = path1.Skip(r1.First).Take(r1.Length).ToList();
@@ -287,8 +276,8 @@ namespace Magic2DTest
         [DeploymentItem("TeleRegistration.exe")]
         public void AdjustPositionTest()
         {
-            var pts00 = circlePoints(100, 100, 50, 20);
-            var pts11 = circlePoints(200, 200, 50, 20);
+            var pts00 = Util.circlePoints(100, 100, 50, 20);
+            var pts11 = Util.circlePoints(200, 200, 50, 20);
 
             SkeletonAnnotation an = new SkeletonAnnotation(null);
             an.joints.Add(new JointAnnotation("00", new PointF(100, 100)));
@@ -320,7 +309,7 @@ namespace Magic2DTest
         {
             List<SegmentMeshInfo> meshes = new List<SegmentMeshInfo>();
 
-            var p1 = circlePoints(50, 100, 40, 20);
+            var p1 = Util.circlePoints(50, 100, 40, 20);
             var r1 = new CharacterRange(0, 6);
             var _s = p1.Skip(r1.First).Take(r1.Length).ToList();
             SkeletonAnnotation an = new SkeletonAnnotation(null)
@@ -329,7 +318,7 @@ namespace Magic2DTest
             };
             meshes.Add(new SegmentMeshInfo(p1, null, _s, an, false));
 
-            var p2 = circlePoints(150, 200, 40, 20);
+            var p2 = Util.circlePoints(150, 200, 40, 20);
             var r2 = new CharacterRange(10, 6);
             var _s2 = p2.Skip(r2.First).Take(r2.Length).ToList();
             meshes.Add(new SegmentMeshInfo(p2, null, _s2, an, false));
@@ -353,6 +342,14 @@ namespace Magic2DTest
             // ちゃんと領域がかぶっているか
             SegmentConnector_Accessor.ExpandSegments(meshes, an, pairs);
 
+            cnt = 0;
+            foreach (var m in meshes)
+            {
+                m.arap.EndDeformation();
+                m.arap.ToBitmap().Save("../../../Test2/mesh" + cnt + "_after.png");
+                cnt++;
+            }
+
             var path1 = meshes[0].GetPath();
             var path2 = meshes[1].GetPath();
 
@@ -365,14 +362,6 @@ namespace Magic2DTest
             Assert.AreEqual(path1[6].X, path2[10].X, 0.1);
             Assert.AreEqual(path1[5].Y, path2[9].Y, 0.1);
             Assert.AreEqual(path1[6].Y, path2[10].Y, 0.1);
-
-            cnt = 0;
-            foreach (var m in meshes)
-            {
-                m.arap.EndDeformation();
-                m.arap.ToBitmap().Save("../../../Test2/mesh" + cnt + "_after.png");
-                cnt++;
-            }
             
             // 接合面もきちんと動いているか
             PointF x, y;
@@ -447,7 +436,7 @@ namespace Magic2DTest
         {
             SegmentConnector_Accessor.GetSectionHeight(null, null, null);
 
-            List<PointF> path = circlePoints(100, 100, 50, 20);
+            List<PointF> path = Util.circlePoints(100, 100, 50, 20);
             var curves = SegmentConnector_Accessor.SectionToCurves(path, new CharacterRange(-2, 5), 3, 30);
            
             float height = SegmentConnector_Accessor.GetSectionHeight(path, curves, GetBone(new PointF(100, 100), new PointF(200, 100)));

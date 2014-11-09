@@ -7,28 +7,36 @@ using System.Linq;
 using System.Text;
 using System.Windows.Forms;
 using System.IO;
-namespace SegmentConnectDemo
+using FLib;
+using Magic2D;
+
+namespace SegmentSynthesizeDemo
 {
-    public partial class FormSCD : Form
+    public partial class Form1 : Form
     {
-        Magic2D.Segmentation segmentation = new Magic2D.Segmentation();
-        Magic2D.Composition composition = new Magic2D.Composition();
+        Segmentation segmentation = new Segmentation();
+        Composition composition = new Composition();
         int dummy_idx = 0;
 
-        List<Magic2D.Segment> inputs = new List<Magic2D.Segment>();
+        List<Segment> inputs = new List<Segment>();
 
-        List<Magic2D.Segment> outputs = new List<Magic2D.Segment>();
-        Dictionary<Magic2D.Segment, Magic2D.SegmentMeshInfo> outmeshes = new Dictionary<Magic2D.Segment,Magic2D.SegmentMeshInfo>();
-        Dictionary<Magic2D.Segment, Bitmap> outBmps = new Dictionary<Magic2D.Segment, Bitmap>();
+        List<Segment> outputs = new List<Segment>();
+        Dictionary<Segment, SegmentMeshInfo> outmeshes = new Dictionary<Segment, SegmentMeshInfo>();
+        Dictionary<Segment, Bitmap> outBmps = new Dictionary<Segment, Bitmap>();
 
-        Magic2D.SkeletonAnnotation an;
+        SkeletonAnnotation an;
 
-        public FormSCD()
+        Pen pen = new Pen(Brushes.Red, 1) { CustomEndCap = new System.Drawing.Drawing2D.AdjustableArrowCap(4, 4) };
+        Pen pen2 = new Pen(Brushes.Blue, 1) { CustomEndCap = new System.Drawing.Drawing2D.AdjustableArrowCap(4, 4) };
+
+        JointAnnotation movingJoint = null;
+
+        public Form1()
         {
             InitializeComponent();
         }
 
-        private void Form1_Load(object sender, EventArgs e)
+        private void Form1_Load_1(object sender, EventArgs e)
         {
             string dir = "../../../Test/";
             if (!Directory.Exists(dir))
@@ -51,7 +59,10 @@ namespace SegmentConnectDemo
             }
             Magic2D.Form1.UpdateImageView(composition.segmentImageDict, imageList1, listView1, true);
 
-            an = Magic2D.SkeletonAnnotation.Load("./refSkeleton.skl");
+            if (!File.Exists("refSkeleton.skl"))
+                throw new FileNotFoundException("not found: refSkeleton.skl");
+
+            an = SkeletonAnnotation.Load("refSkeleton.skl");
 
             inputs.Clear();
         }
@@ -67,13 +78,13 @@ namespace SegmentConnectDemo
                 if (! composition.segmentImageDict.ContainsKey(key))
                     return;
                 
-                Magic2D.Segment seg;
+                Segment seg;
                 composition.AssignSegment(listView1.SelectedItems[0].Text, out seg);
 
                 if (seg == null)
                     return;
 
-                inputs.Add(new Magic2D.Segment(seg));
+                inputs.Add(new Segment(seg));
 
                 outputs = Connect(inputs);
 
@@ -85,13 +96,13 @@ namespace SegmentConnectDemo
             }
         }
 
-        List<Magic2D.Segment> Connect(List<Magic2D.Segment> segments)
+        List<Segment> Connect(List<Segment> segments)
         {
-            List<Magic2D.SegmentMeshInfo> meshes = new List<Magic2D.SegmentMeshInfo>();
+            List<SegmentMeshInfo> meshes = new List<SegmentMeshInfo>();
             foreach (var seg in segments)
-                meshes.Add(new Magic2D.SegmentMeshInfo(seg, true));
+                meshes.Add(new SegmentMeshInfo(seg, true));
 
-            var connector = new Magic2D.SegmentConnector(meshes, an, null);
+            var connector = new SegmentConnector(meshes, an, null);
 
             for (int i = 0; i < connector.meshes.Count; i++)
             {
@@ -105,9 +116,6 @@ namespace SegmentConnectDemo
 
             return segments;
         }
-
-        Pen pen = new Pen(Brushes.Red, 1) { CustomEndCap = new System.Drawing.Drawing2D.AdjustableArrowCap(4, 4) };
-        Pen pen2 = new Pen(Brushes.Blue, 1) { CustomEndCap = new System.Drawing.Drawing2D.AdjustableArrowCap(4, 4) };
 
         private void pictureBox1_Paint(object sender, PaintEventArgs e)
         {
@@ -148,8 +156,6 @@ namespace SegmentConnectDemo
             outputs = Connect(inputs);
             pictureBox1.Invalidate();
         }
-
-        Magic2D.JointAnnotation movingJoint = null;
 
         private void pictureBox1_MouseDown(object sender, MouseEventArgs e)
         {

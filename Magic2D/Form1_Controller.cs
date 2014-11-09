@@ -18,8 +18,6 @@ namespace Magic2D
         {
             for (int i = sourceImageDict.Count - 1; i >= 0; i--)
                 DeleteImage(sourceImageDict, sourceImageDict.Keys.ElementAt(i));
-            for (int i = segmentImageDict.Count - 1; i >= 0; i--)
-                DeleteImage(segmentImageDict, segmentImageDict.Keys.ElementAt(i));
             for (int i = composedImageDict.Count - 1; i >= 0; i--)
                 DeleteImage(composedImageDict, composedImageDict.Keys.ElementAt(i));
             for (int i = operationHistory.Count - 1; i >= 0; i--)

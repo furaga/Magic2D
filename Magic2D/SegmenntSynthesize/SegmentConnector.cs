@@ -8,6 +8,12 @@ using Magic2D;
 
 namespace Magic2D
 {
+    /// <summary>
+    /// 複数のセグメントをスケルトン情報をもとに結合する
+    /// 1. スケルトンに合わせて各セグメントをざっくり移動・ボーン方向にARAP
+    /// 2. セグメント同士が自然に繋がるように位置・角度・スケールを調整
+    /// 3. 繋ぎ目が重なるようにARAP
+    /// 4. つながった複数のセグメントから新しいセグメントを生成                                                                                                                                                                                                                                                                                                                                         /// </summary>
     public class SegmentConnector
     {
         public List<SegmentMeshInfo> meshes = new List<SegmentMeshInfo>();
@@ -32,22 +38,69 @@ namespace Magic2D
 
         //------------------------------------------------------------------
 
+        public SegmentConnector(List<SegmentMeshInfo> meshes, SkeletonAnnotation an, List<int> meshOrder)
+        {
+            var deformedMeshes = new List<SegmentMeshInfo>();
+            foreach (var m in meshes)
+                deformedMeshes.Add(new SegmentMeshInfo(m));
+
+            // スケルトンが指定されていなければ、meshes内のanを統合したものを用意する
+            if (an == null)
+                return;
+
+            this.an = new SkeletonAnnotation(an, true);
+
+            var pairs = GetSectionPairs(deformedMeshes, this.an);
+            Deform(deformedMeshes, this.an, pairs);
+
+            this.meshes = Connect(deformedMeshes, pairs, meshOrder);
+        }
+
+        private List<SegmentMeshInfo> Connect(List<SegmentMeshInfo> deformedMeshes, List<ConnectPair> pairs, List<int> meshOrder)
+        {
+            return deformedMeshes;
+
+            List<List<SegmentMeshInfo>> meshGroups = new List<List<SegmentMeshInfo>>();
+            foreach (var p in pairs)
+            {
+                int idx = -1;
+                for (int i = 0; i < meshGroups.Count; i++)
+                {
+                    if (meshGroups[i].Contains(p.meshInfo1) || meshGroups[i].Contains(p.meshInfo2))
+                    {
+                        idx = i;
+                        break;
+                    }
+                }
+                if (idx <= -1)
+                {
+                    meshGroups.Add(new List<SegmentMeshInfo>() { p.meshInfo1, p.meshInfo2 });
+                }
+                else
+                {
+                    if (!meshGroups[idx].Contains(p.meshInfo1))
+                        meshGroups[idx].Add(p.meshInfo1);
+                    if (!meshGroups[idx].Contains(p.meshInfo2))
+                        meshGroups[idx].Add(p.meshInfo2);
+                }
+            }
+
+            for (int i = 0; i < meshGroups.Count; i++)
+                meshGroups[i] = meshGroups[i].OrderBy(m => meshOrder[deformedMeshes.IndexOf(m)]).ToList();
+
+            List<SegmentMeshInfo> meshes = new List<SegmentMeshInfo>();
+            for (int i = 0; i < meshGroups.Count; i++)
+                meshes.Add(new SegmentMeshInfo(meshGroups[i], an));
+
+            return meshes;
+        }
+
         static bool AreEqualBone(BoneAnnotation b1, BoneAnnotation b2)
         {
             return (b1.src.name == b2.src.name && b1.dst.name == b2.dst.name) ||
                    (b1.src.name == b2.dst.name && b1.dst.name == b2.src.name);
         }
 
-        public SegmentConnector(List<SegmentMeshInfo> meshes, SkeletonAnnotation an)
-        {
-            this.meshes = meshes;
-            this.an = new SkeletonAnnotation(an, true);
-            var pairs = GetSectionPairs(meshes, an);
-            Connect(this.meshes, an, pairs);
-        }
-
-        // segmentのオフセットだけずらしときに未対応？
-        // mehesはskeletonFittingでanに合わせたあとだと仮定する
         static List<ConnectPair> GetSectionPairs(List<SegmentMeshInfo> meshes, SkeletonAnnotation an)
         {
             if (an == null)
@@ -75,10 +128,31 @@ namespace Magic2D
             return pairs;
         }
 
-        static void Connect(List<SegmentMeshInfo> meshes, SkeletonAnnotation an, List<ConnectPair> pairs)
+        static void Deform(List<SegmentMeshInfo> meshes, SkeletonAnnotation an, List<ConnectPair> pairs)
         {
-            AdjustRotation(meshes, an, pairs);
-            AdjustScale(meshes, an, pairs);
+            if (meshes == null || meshes.Count <= 0)
+                return;
+
+            if (meshes.Count == 1)
+            {
+                SkeletonFitting.Fitting(meshes[0], an);
+                return;
+            }
+
+            float delta = 0;
+            for (int i = 0; i < 5; i++)
+            {
+                delta = AdjustScale(meshes, an, pairs);
+                if (delta <= 1e-4)
+                    break;
+                foreach (var m in meshes)
+                    SkeletonFitting.Fitting(m, an);
+            }
+
+            foreach (var m in meshes)
+                SkeletonFitting.Fitting(m, an);
+
+            //            AdjustRotation(meshes, an, pairs);
             AdjustPosition(meshes, an, pairs);
             ExpandSegments(meshes, an, pairs);
         }
@@ -91,7 +165,6 @@ namespace Magic2D
             float cos = (float)Math.Cos(maxAngle);
 
             //------------------------------------------------------
-
 
             int start1 = sectionRange.First;
             while (start1 < 0)
@@ -157,8 +230,10 @@ namespace Magic2D
 
         }
 
-        static void AdjustScale(List<SegmentMeshInfo> meshes, SkeletonAnnotation an, List<ConnectPair> pairs)
+        static float AdjustScale(List<SegmentMeshInfo> meshes, SkeletonAnnotation an, List<ConnectPair> pairs)
         {
+            float delta = 0;
+
             // ボーンのsrc側のセグメントの接合面の幅にdst側のセグメントの幅を揃える
             foreach (var b in an.bones)
             {
@@ -185,8 +260,12 @@ namespace Magic2D
                     // サイズを合わせる
                     if (Math.Abs(width1 - width2) > 1e-4)
                         m2.Scale(width1 / width2, width1 / width2);
+
+                    delta += width1 * width1 / (width2 * width2);
                 }
             }
+
+            return delta;
         }
 
         static float GetSectionWidth(List<PointF> path, Tuple<CharacterRange, CharacterRange> curves, BoneAnnotation b)
@@ -340,6 +419,17 @@ namespace Magic2D
 
         private static void ExpandSegments(List<SegmentMeshInfo> meshes, SkeletonAnnotation an, List<ConnectPair> pairs)
         {
+            int _cnt = 0;
+            foreach (var m in meshes)
+            {
+                if (m.arap == null)
+                    continue;
+                m.arap.controlPoints.Clear();
+                SegmentMeshInfo.SetPathControlPoints(m.arap);
+                m.arap.BeginDeformation();
+                m.arap.ToBitmap().Save("../../../Test2/" + (_cnt++) + ".png");
+            }
+
             foreach (var b in an.bones)
             {
                 foreach (var p in pairs)
@@ -422,7 +512,12 @@ namespace Magic2D
                 }
             }
 
-            
+            foreach (var m in meshes)
+            {
+                if (m.arap == null)
+                    continue;
+                m.arap.EndDeformation();
+            }
         }
 
     }

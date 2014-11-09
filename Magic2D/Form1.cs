@@ -979,28 +979,7 @@ namespace Magic2D
                 e.Graphics.DrawImage(composition.referenceImage, ox, oy, size.Width, size.Height);
             }
         }
-
-        private void loadSegmentImageButton_Click(object sender, EventArgs e)
-        {
-            segmentImageOpenFileDialog.RestoreDirectory = true;
-            segmentImageOpenFileDialog.Filter = "*.png,*.bmp,*.jpg|*.png;*.bmp;*.jpg";
-            segmentImageOpenFileDialog.Multiselect = true;
-            if (segmentImageOpenFileDialog.ShowDialog() == System.Windows.Forms.DialogResult.OK)
-            {
-                foreach (var filename in segmentImageOpenFileDialog.FileNames)
-                {
-                    using (var _bmp = new Bitmap(filename))
-                    {
-                        Bitmap bmp = new Bitmap(_bmp);
-                        string key = System.IO.Path.GetFileNameWithoutExtension(filename);
-                        AssignImage(segmentImageDict, key, bmp);
-                    }
-                }
-            }
-
-            UpdateImageView(segmentImageDict, segmentImageList, segmentImageView, false);
-        }
-
+        
         private void segmentImageView_MouseDoubleClick(object sender, MouseEventArgs e)
         {
             if (segmentImageView.SelectedItems.Count >= 1)
@@ -1010,7 +989,16 @@ namespace Magic2D
                 if (seg != null)
                 {
                     composition.SetEditingSegment(seg);
-                    composition.SkeletonFitting(seg);
+                    composition.Fitting(seg);
+
+
+                    //
+                    //
+                    //
+                    var meshes = composition.editingUnit.segments.Select(s => composition.GetMeshInfo(s)).ToList();
+                    var connector = new SegmentConnector(meshes, composition.an, null);
+                    for (int i = 0; i < connector.meshes.Count; i++)
+                        composition.SetMeshInfo(composition.editingUnit.segments[i].name, connector.meshes[i]);
                 }
                 segmentMoveButton.Checked = true;
                 compositionCanvas.Invalidate();
@@ -1028,7 +1016,7 @@ namespace Magic2D
             composition.OnMouseDown(e.Button, e.Location, GetCompositionOperationType(), compositionCanvas);
             compositionCanvas.Invalidate();
 
-            var transform = composition.GetTransform(composition.editingSegment);
+            var transform = composition.GetMeshInfo(composition.editingSegment);
             if (transform == null)
                 return;
             UpdateSegmentTransformView(transform);
@@ -1043,7 +1031,7 @@ namespace Magic2D
 
             compositionCanvas.Invalidate();
 
-            var transform = composition.GetTransform(composition.editingSegment);
+            var transform = composition.GetMeshInfo(composition.editingSegment);
             if (transform == null)
                 return;
             UpdateSegmentTransformView(transform);
@@ -1068,7 +1056,7 @@ namespace Magic2D
             composition.OnMouseUp(e.Button, e.Location, GetCompositionOperationType(), compositionCanvas);
             compositionCanvas.Invalidate();
 
-            var transform = composition.GetTransform(composition.editingSegment);
+            var transform = composition.GetMeshInfo(composition.editingSegment);
             if (transform == null)
                 return;
             UpdateSegmentTransformView(transform);
@@ -1089,7 +1077,7 @@ namespace Magic2D
         {
             if (composition == null)
                 return;
-            var transform = composition.GetTransform(composition.editingSegment);
+            var transform = composition.GetMeshInfo(composition.editingSegment);
             if (transform == null)
                 return;
             float x = posXTrackbar.Value;
@@ -1102,7 +1090,7 @@ namespace Magic2D
         {
             if (composition == null)
                 return;
-            var transform = composition.GetTransform(composition.editingSegment);
+            var transform = composition.GetMeshInfo(composition.editingSegment);
             if (transform == null)
                 return;
             float deg = rotTrackbar.Value;
@@ -1114,7 +1102,7 @@ namespace Magic2D
         {
             if (composition == null)
                 return;
-            var transform = composition.GetTransform(composition.editingSegment);
+            var transform = composition.GetMeshInfo(composition.editingSegment);
             if (transform == null)
                 return;
             float x = scaleXTrackbar.Value * 0.1f;
@@ -1127,7 +1115,7 @@ namespace Magic2D
         {
             if (composition == null)
                 return;
-            var transform = composition.GetTransform(composition.editingSegment);
+            var transform = composition.GetMeshInfo(composition.editingSegment);
             if (transform == null)
                 return;
             transform.ReverseX(reverseCheckBox.Checked);

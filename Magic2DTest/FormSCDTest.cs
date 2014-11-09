@@ -1,8 +1,7 @@
-﻿using Magic2D;
+﻿using SegmentConnectDemo;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
-using System.Drawing;
-using System.Linq;
+using Magic2D;
 using System.Collections.Generic;
 
 namespace Magic2DTest
@@ -10,11 +9,11 @@ namespace Magic2DTest
     
     
     /// <summary>
-    ///SegmentMeshInfoTest のテスト クラスです。すべての
-    ///SegmentMeshInfoTest 単体テストをここに含めます
+    ///FormSCDTest のテスト クラスです。すべての
+    ///FormSCDTest 単体テストをここに含めます
     ///</summary>
     [TestClass()]
-    public class SegmentMeshInfoTest
+    public class FormSCDTest
     {
 
 
@@ -67,27 +66,6 @@ namespace Magic2DTest
         #endregion
 
 
-        /// <summary>
-        ///GetBoneSectionCrossDict のテスト
-        ///</summary>
-        [TestMethod()]
-        [DeploymentItem("Magic2D.exe")]
-        public void GetBoneSectionCrossDictTest()
-        {
-            var _seg1 = new Segment("seg1", null);
-            _seg1.path = Util.circlePoints(100, 100, 30, 20);
-            _seg1.section = _seg1.path.Take(5).ToList();
-            _seg1.an = new SkeletonAnnotation(null);
-            _seg1.an.joints.Add(new JointAnnotation("0", new PointF(100, 100)));
-            _seg1.an.joints.Add(new JointAnnotation("1", new PointF(200, 200)));
-            _seg1.an.bones.Add(new BoneAnnotation(_seg1.an.joints[0], _seg1.an.joints[1]));
-
-            var dict = SegmentMeshInfo_Accessor.GetBoneSectionCrossDict(_seg1.path, new List<CharacterRange>() { new CharacterRange(0, 5) }, _seg1.an);
-            Assert.AreEqual(dict.Count, 1);
-
-            var seg1 = new SegmentMeshInfo(_seg1, false);
-            Assert.AreEqual(seg1.crossDict.Count, 1);
-        }
 
     }
 }

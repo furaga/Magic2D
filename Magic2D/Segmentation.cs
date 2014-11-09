@@ -281,6 +281,9 @@ namespace Magic2D
 
         public Segment(Segment seg, string name = "")
         {
+            if (seg == null)
+                return;
+
             this.name = name == "" ? seg.name : name;
             this.bmp = seg.bmp == null ? null : new Bitmap(seg.bmp);
             this.offset = seg.offset;
@@ -288,6 +291,7 @@ namespace Magic2D
             this.an = new SkeletonAnnotation(seg.an, false);
             this.section = new List<PointF>(seg.section);
             this.partingLine = new List<PointF>(seg.partingLine);
+            this.path = new List<PointF>(seg.path);
         }
         
         public void _SetClosed(bool closed)

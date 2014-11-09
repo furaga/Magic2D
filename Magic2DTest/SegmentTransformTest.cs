@@ -4,6 +4,7 @@ using System;
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace Magic2DTest
 {
@@ -67,43 +68,6 @@ namespace Magic2DTest
         #endregion
 
 
-        /// <summary>
-        ///SkeletonFitting のテスト
-        ///</summary>
-        [TestMethod()]
-        public void SkeletonFittingTest()
-        {
-            SkeletonAnnotation segmentAnnotaiton = new SkeletonAnnotation(null);
-            segmentAnnotaiton.joints.Add(new JointAnnotation("0", new System.Drawing.PointF(10, 10)));
-            segmentAnnotaiton.joints.Add(new JointAnnotation("1", new System.Drawing.PointF(110, 110)));
-            segmentAnnotaiton.bones.Add(new BoneAnnotation(segmentAnnotaiton.joints[0], segmentAnnotaiton.joints[1]));
-
-            Segment seg = new Segment("seg", null);
-            seg.an = segmentAnnotaiton;
-
-            SegmentMeshInfo target = new SegmentMeshInfo(seg, false); // TODO: 適切な値に初期化してください
-
-            SkeletonAnnotation refAnnotation = new SkeletonAnnotation(null);
-            refAnnotation.joints.Add(new JointAnnotation("0", new System.Drawing.PointF(80, 50)));
-            refAnnotation.joints.Add(new JointAnnotation("1", new System.Drawing.PointF(30, 50)));
-            refAnnotation.bones.Add(new BoneAnnotation(refAnnotation.joints[0], refAnnotation.joints[1]));
-            
-            target.SkeletonFitting(refAnnotation);
-            Assert.AreEqual(target.scale.X, target.scale.Y);
-            Assert.AreEqual(target.scale.X, 50 / (100 * Math.Sqrt(2)), 1e-4);
-            Assert.AreEqual(target.angle, 135f, 1e-4);
-
-            var transform = target.GetTransform();
-            var _pt = new [] { new PointF(10, 10) };
-            transform.TransformPoints(_pt);
-            Assert.AreEqual(_pt[0].X, 80, 1e-4);
-            Assert.AreEqual(_pt[0].Y, 50, 1e-4);
-
-            Assert.AreEqual(target.an.joints[0].position.X, 80, 1e-4);
-            Assert.AreEqual(target.an.joints[0].position.Y, 50, 1e-4);
-            Assert.AreEqual(target.an.joints[1].position.X, 30, 1e-4);
-            Assert.AreEqual(target.an.joints[1].position.Y, 50, 1e-4);
-        }
 
         /// <summary>
         ///GetCrossingBoneWithPath のテスト
@@ -166,11 +130,11 @@ namespace Magic2DTest
             an.bones.Add(new BoneAnnotation(an.joints[0], an.joints[2]));
             an.bones.Add(new BoneAnnotation(an.joints[3], an.joints[4]));
 
-            Dictionary<PointF, List<BoneAnnotation>> controlToBone = new Dictionary<PointF, List<BoneAnnotation>>();
+            Dictionary<BoneAnnotation, List<PointF>> boneToControl = new Dictionary<BoneAnnotation,List<PointF>>();
 
-            SegmentMeshInfo_Accessor.InitializeControlPoints(arap, an, 50, null, controlToBone);
+            SegmentMeshInfo_Accessor.InitializeControlPoints(arap, an, 50, null, boneToControl);
             Assert.AreEqual(arap.controlPoints.Count, 6);
-            Assert.AreEqual(controlToBone.Count, 6);
+            Assert.AreEqual(boneToControl.Sum(kv => kv.Value.Count), 7);
 
             Assert.AreEqual(arap.controlPoints[0].X, 0);
             Assert.AreEqual(arap.controlPoints[1].X, 50, 1e-4);

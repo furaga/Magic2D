@@ -129,7 +129,7 @@ namespace Magic2D
                     if (button != MouseButtons.Left)
                         break;
                     editingControlPoint = null;
-                    var transform = GetTransform(editingSegment);
+                    var transform = GetMeshInfo(editingSegment);
                     if (transform == null || transform.arap == null)
                         break;
                     var nearest = GetNearestControlPoint(transform.arap.controlPoints, point, 20, canvas);
@@ -199,7 +199,7 @@ namespace Magic2D
                         {
                             foreach (var seg in editingUnit.segments)
                             {
-                                SkeletonFitting(seg);
+                                Fitting(seg);
                                 UpdateSkeletalControlPoints(seg);
                                 FlushDeformation(seg);
                                 // ConectSegments(seg);
@@ -211,7 +211,7 @@ namespace Magic2D
                 case OperationType.Segment:
                     if (button == MouseButtons.Left)
                     {
-                        transform = GetTransform(editingSegment);
+                        transform = GetMeshInfo(editingSegment);
                         if (transform == null)
                             break;
                         var src = canvas.PointToWorld(prevPoint);
@@ -221,7 +221,7 @@ namespace Magic2D
                     }
                     break;
                 case OperationType.ControlPoint:
-                    transform = GetTransform(editingSegment);
+                    transform = GetMeshInfo(editingSegment);
                     if (transform == null || transform.arap == null)
                         break;
                     if (button != MouseButtons.Left)
@@ -275,7 +275,7 @@ namespace Magic2D
                         break;
                     if (FMath.SqDistance(prevPoint, point) <= 1)
                     {
-                        transform = GetTransform(editingSegment);
+                        transform = GetMeshInfo(editingSegment);
                         if (transform == null || transform.arap == null)
                             break;
                         // 既存の制御点をクリックしたら消す
@@ -372,7 +372,7 @@ namespace Magic2D
                 return null;
         }
 
-        public SegmentMeshInfo GetTransform(Segment seg)
+        public SegmentMeshInfo GetMeshInfo(Segment seg)
         {
             if (seg == null)
                 return null;
@@ -382,6 +382,18 @@ namespace Magic2D
                 return null;
             return editingUnit.transformDict[seg.name];
         }
+
+        public void SetMeshInfo(string name, SegmentMeshInfo m)
+        {
+            if (m == null)
+                return;
+            if (editingUnit == null)
+                return;
+            if (!editingUnit.transformDict.ContainsKey(name))
+                return;
+            editingUnit.transformDict[name] = m;
+        }
+
         Segment GetSegment(List<Segment> segments, Dictionary<string, SegmentMeshInfo> transformDict, PointF point)
         {
             for (int i = segments.Count - 1; i >= 0; i--)
@@ -424,6 +436,8 @@ namespace Magic2D
         {
             newSeg = null;
             if (!segmentDict.ContainsKey(key))
+                return null;
+            if (editingUnit == null)
                 return null;
             newSeg = editingUnit.AssignSegment(key, segmentDict[key]);
             return null;
@@ -564,17 +578,17 @@ namespace Magic2D
             SetReferenceImage(cur);
         }
 
-        public void SkeletonFitting(Segment seg)
+        public void Fitting(Segment seg)
         {
-            var transform = GetTransform(seg);
-            if (transform == null)
+            var m = GetMeshInfo(seg);
+            if (m == null)
                 return;
-            transform.SkeletonFitting(an);
+            SkeletonFitting.Fitting(m, an);
         }
 
         private void UpdateSkeletalControlPoints(Segment seg)
         {
-            var transform = GetTransform(seg);
+            var transform = GetMeshInfo(seg);
             if (transform == null)
                 return;
             transform.UpdateSkeletalControlPoints(an);
@@ -582,7 +596,7 @@ namespace Magic2D
 
         private void FlushDeformation(Segment seg)
         {
-            var transform = GetTransform(seg);
+            var transform = GetMeshInfo(seg);
             if (transform == null || transform.arap == null)
                 return;
             transform.arap.FlushDefomation();
@@ -639,443 +653,4 @@ namespace Magic2D
         }
     }
 
-    public class SegmentMeshInfo
-    {
-        public PointF position = PointF.Empty;
-        public float angle = 0;
-        public PointF scale = new PointF(1, 1);
-        public bool reverse = false;
-
-        // 元セグメントから得られる情報
-        readonly public ARAPDeformation arap;
-        readonly public List<CharacterRange> sections = new List<CharacterRange>();
-        readonly public SkeletonAnnotation an;
-        readonly public Dictionary<PointF, List<BoneAnnotation>> controlToBone = new Dictionary<PointF, List<BoneAnnotation>>();
-
-        readonly public Dictionary<BoneAnnotation, CrossBoneSection> crossDict = new Dictionary<BoneAnnotation, CrossBoneSection>();
-       
-        public List<PointF> GetPath()
-        {
-            if (arap == null)
-                return null;
-            return arap.GetPath();
-        }
-
-        public SegmentMeshInfo(Segment seg, bool initControlPoints)
-        {
-            if (seg == null)
-                return;
-
-            if (seg.path != null && seg.path.Count > 3)
-            {
-                // メッシュを生成
-                var path = ShiftPath(seg.path, -seg.offset.X, -seg.offset.Y);
-                path.RemoveAt(path.Count - 1); // 終点（始点と同じ）は消す
-
-                var partingLine = new List<PointF>();
-                if (seg.partingLine == null)
-                    partingLine = ShiftPath(seg.partingLine, -seg.offset.X, -seg.offset.Y);
-                
-                arap = new ARAPDeformation(path, partingLine);
-
-                // 接合面の情報をコピー
-                if (seg.section != null || seg.section.Count > 0)
-                    sections = FMath.SplitPathRange(seg.section, path, true);
-            }
-
-            if (seg.an != null)
-            {
-                // スケルトンをコピー
-                an = new SkeletonAnnotation(seg.an, false);
-                foreach (var j in an.joints)
-                    j.position = new PointF(j.position.X - seg.offset.X, j.position.Y - seg.offset.Y);
-            }
-
-            // 接合面とボーンの交差情報
-            if (sections != null && sections.Count >= 1 && seg.an != null && seg.an.bones != null)
-                crossDict = GetBoneSectionCrossDict(GetPath(), sections, an);
-
-            if (initControlPoints && arap != null)
-            {
-                // 制御点を初期
-                InitializeControlPoints(arap, an, 30, sections, controlToBone);
-                arap.BeginDeformation();
-            }
-        }
-
-        public SegmentMeshInfo(List<PointF> path, List<PointF> partingLine, List<PointF> section, SkeletonAnnotation an, bool initControlPoints) :
-            this(
-                new Segment("_dummy", null)
-                {
-                    path = path.Concat(new[] { path[0] }).ToList(), // 終点を追加する
-                    partingLine = partingLine,
-                    section = section,
-                    an = an
-                },
-                initControlPoints)
-        {
-        }
-
-        // 接合面とボーンの交差判定
-        // ボーンのひとつの端点は内で逆の端点は外
-        static Dictionary<BoneAnnotation, CrossBoneSection> GetBoneSectionCrossDict(List<PointF> path, List<CharacterRange> sections, SkeletonAnnotation an)
-        {
-            var crossDict = new Dictionary<BoneAnnotation, CrossBoneSection>();
-
-            if (path == null || path.Count <= 0 || an == null || an.bones == null)
-                return crossDict;
-
-            foreach (var section in sections)
-            {
-                var pts = new List<PointF>();
-                for (int i = section.First; i < section.First + section.Length; i++)
-                    pts.Add(path[i % path.Count]);
-
-                foreach (var b in an.bones)
-                {
-                    if (FMath.IsCrossed(b.src.position, b.dst.position, pts))
-                    {
-                        bool srcIn = FMath.IsPointInPolygon(b.src.position, path);
-                        bool dstIn = FMath.IsPointInPolygon(b.dst.position, path);
-                        if (srcIn && !dstIn)
-                            crossDict[b] = new CrossBoneSection(b, section, 1);
-                        if (!srcIn && dstIn)
-                            crossDict[b] = new CrossBoneSection(b, section, -1);
-                    }
-                }
-            }
-
-            return crossDict;
-        }
-
-        static List<PointF> ShiftPath(List<PointF> path, float offsetx, float offsety)
-        {
-            if (path == null)
-                return new List<PointF>();
-            List<PointF> _path = new List<PointF>();
-            for (int i = 0; i < path.Count; i++)
-                _path.Add(new PointF(path[i].X + offsetx, path[i].Y + offsety));
-            return _path;
-        }
-
-        // pathはrefPath上の点集合。ひとつづきの点集合ごとに分割する
-        // たとえば
-        // path: p1, p2, p3, p4
-        // refPath: p1, p3, p0, p2, p4
-        // のとき{ { { p1, p3 }, { p2, p4 } }を返す
-        public static List<List<PointF>> SplitPath(List<PointF> path, List<PointF> refPath)
-        {
-            List<List<PointF>> ans = new List<List<PointF>>();
-
-            if (path == null || refPath == null)
-                return ans;
-
-            List<PointF> ls = new List<PointF>();
-            foreach (var pt in refPath)
-            {
-                if (path.Contains(pt))
-                {
-                    ls.Add(pt);
-                }
-                else if (ls.Count >= 1)
-                {
-                    ans.Add(ls);
-                    ls = new List<PointF>();
-                }
-            }
-            return ans;
-        }
-
-        static void InitializeControlPoints(ARAPDeformation arap, SkeletonAnnotation an, int linearSpan, List<CharacterRange> sections, Dictionary<PointF, List<BoneAnnotation>> controlToBone)
-        {
-            if (arap == null)
-                return;
-
-            controlToBone.Clear();
-            arap.controlPoints.Clear();
-
-            // ボーン沿いに制御点を追加
-            if (an != null && linearSpan >= 1)
-            {
-                foreach (var b in an.bones)
-                {
-                    PointF p0 = b.src.position;
-                    PointF p1 = b.dst.position;
-                    float dist = FMath.Distance(p0, p1);
-                    int ptNum = Math.Max(2, (int)(dist / linearSpan) + 1);
-                    for (int i = 0; i < ptNum; i++)
-                    {
-                        float t = (float)i / (ptNum - 1);
-                        PointF p = i == 0 ? p0 : i == ptNum - 1 ? p1 : FMath.Interpolate(p0, p1, t);
-
-                        if (!controlToBone.ContainsKey(p))
-                        {
-                            controlToBone[p] = new List<BoneAnnotation>() { b };
-                            arap.AddControlPoint(p, p);
-                        }
-                        else
-                        {
-                            controlToBone[p].Add(b);
-                        }
-                    }
-                }
-            }
-        }
-
-        static BoneAnnotation GetCrossingBoneWithPath(SkeletonAnnotation an, List<PointF> section)
-        {
-            if (an == null || an.bones == null)
-                return null;
-            if (section == null)
-                return null;
-
-            foreach (var b in an.bones)
-            {
-                PointF p0 = b.src.position;
-                PointF p1 = b.dst.position;
-                for (int i = 0; i < section.Count - 1; i++)
-                {
-                    if (FMath.IsCrossed(p0, p1, section[i], section[i + 1]))
-                        return b;
-                }
-            }
-
-            return null;
-        }
-
-        public void SkeletonFitting(SkeletonAnnotation refSkeleton)
-        {
-            if (an == null || refSkeleton == null)
-                return;
-            if (an.bones == null || refSkeleton.bones == null)
-                return;
-
-            bool found = false;
-            BoneAnnotation from = null, to = null;
-
-            foreach (var br in refSkeleton.bones)
-            {
-                foreach (var b in an.bones)
-                {
-                    if (b.src.name == br.src.name && b.dst.name == br.dst.name)
-                    {
-                        from = b;
-                        to = br;
-                        found = true;
-                        break;
-                    }
-                }
-                if (found)
-                    break;
-            }
-
-            if (from == null || to == null)
-                return;
-
-            if (!reverse)
-            {
-                double angle1 = Math.Atan2(from.dst.position.Y - from.src.position.Y, from.dst.position.X - from.src.position.X);
-                double angle2 = Math.Atan2(to.dst.position.Y - to.src.position.Y, to.dst.position.X - to.src.position.X);
-                angle = (float)FMath.ToDegree((float)(angle2 - angle1));
-            }
-            else
-            {
-                double angle1 = Math.Atan2(-from.dst.position.Y + from.src.position.Y, from.dst.position.X - from.src.position.X);
-                double angle2 = Math.Atan2(to.dst.position.Y - to.src.position.Y, to.dst.position.X - to.src.position.X);
-                angle = (float)(angle2 - angle1);
-            }
-         
-            float len1 = FMath.Distance(from.src.position, from.dst.position);
-            float len2 = FMath.Distance(to.src.position, to.dst.position);
-            scale = new PointF(len2 / len1, len2 / len1);
-
-            position = PointF.Empty;
-            var _pts = new[] { from.src.position };
-            GetTransform().TransformPoints(_pts);
-            position = new PointF(to.src.position.X - _pts[0].X, to.src.position.Y - _pts[0].Y);
-
-            if (an != null)
-            {
-                _pts = an.joints.Select(j => j.position).ToArray();
-                GetTransform().TransformPoints(_pts);
-                for (int i = 0; i < an.joints.Count; i++)
-                    an.joints[i].position = _pts[i];
-            }
-
-            if (arap != null)
-                arap.Transform(GetTransform());
-        }
-
-        public void Translate(float x, float y)
-        {
-            if (arap != null)
-                arap.Translate(x, y);
-            position.X += x;
-            position.Y += y;
-        }
-
-        public void MoveTo(float x, float y)
-        {
-            if (arap != null)
-                arap.Translate(x - position.X, y - position.Y);
-            position = new PointF(x, y);
-        }
-
-        public void Rotate(float deg)
-        {
-            if (arap != null)
-            {
-                Matrix transform = new Matrix();
-                transform.RotateAt(deg - angle, position, MatrixOrder.Append);
-                arap.Transform(transform);
-            }
-            angle = deg;
-        }
-
-        public void Scale(float x, float y)
-        {
-            if (x <= 0 || y <= 0)
-                return;
-            if (scale.X <= 0 || scale.Y <= 0)
-                return;
-            if (arap != null)
-            {
-                Matrix transform = new Matrix();
-                transform.Translate(-position.X, -position.Y, MatrixOrder.Append);
-                transform.Rotate(-angle, MatrixOrder.Append);
-                transform.Scale(x / scale.X, y / scale.Y, MatrixOrder.Append);
-                transform.Rotate(angle, MatrixOrder.Append);
-                transform.Translate(position.X, position.Y, MatrixOrder.Append);
-                arap.Transform(transform);
-            }
-            scale = new PointF(x, y);
-        }
-
-        public void ReverseX(bool reverse)
-        {
-            if (this.reverse == reverse)
-                return;
-
-            if (arap != null)
-            {
-                Matrix transform = new Matrix();
-                transform.Translate(-position.X, -position.Y, MatrixOrder.Append);
-                transform.Rotate(-angle, MatrixOrder.Append);
-                transform.Scale(-1, 1, MatrixOrder.Append);
-                transform.Rotate(angle, MatrixOrder.Append);
-                transform.Translate(position.X, position.Y, MatrixOrder.Append);
-                arap.Transform(transform);
-                this.reverse = reverse;
-            }
-        }
-
-        public Matrix GetTransform()
-        {
-            Matrix transform = new Matrix();
-            if (scale.X <= 0 || scale.Y <= 0)
-                return transform;
-
-            if (reverse)
-                transform.Scale(-1, 1, MatrixOrder.Append);
-            transform.Scale(scale.X, scale.Y, MatrixOrder.Append);
-            transform.Rotate(angle, MatrixOrder.Append);
-            transform.Translate(position.X, position.Y, MatrixOrder.Append);
-
-            return transform;
-        }
-
-        public PointF Invert(PointF pt)
-        {
-            Matrix transform = new Matrix();
-            if (scale.X <= 0 || scale.Y <= 0)
-                return pt;
-            transform.Translate(-position.X, -position.Y, MatrixOrder.Append);
-            transform.Rotate(-angle, MatrixOrder.Append);
-            transform.Scale(1 / scale.X, 1 / scale.Y, MatrixOrder.Append);
-            if (reverse)
-                transform.Scale(-1, 1, MatrixOrder.Append);
-
-            PointF[] _pt = new [] { pt};
-            transform.TransformPoints(_pt);
-            return _pt[0];
-        }
-
-
-        public void UpdateSkeletalControlPoints(SkeletonAnnotation refAnnotation)
-        {
-            if (an == null)
-                return;
-
-            if (arap == null)
-                return;
-
-            var orgAn = new SkeletonAnnotation(an, false);
-
-            foreach (var j in an.joints)
-            {
-                foreach (var jr in refAnnotation.joints)
-                {
-                    if (j.name == jr.name)
-                    {
-                        j.position = jr.position;
-                        break;
-                    }
-                }
-            }
-
-            var transformDict = GetSkeletalTransforms(an, orgAn);
-
-            foreach (var kv in controlToBone)
-            {
-                var orgPt = kv.Key;
-                var bones = kv.Value;
-                if (bones.Count <= 0)
-                    continue;
-                if (!transformDict.ContainsKey(bones[0]))
-                    continue;
-                var transform = transformDict[bones[0]];
-                var pt = arap.OrgToCurControlPoint(orgPt);
-                if (pt == null)
-                    continue;
-                var to = FMath.Transform(pt.Value, transform);
-                arap.TranslateControlPoint(pt.Value, to, false);
-            }
-        }
-
-        static Dictionary<BoneAnnotation, Matrix> GetSkeletalTransforms(SkeletonAnnotation an, SkeletonAnnotation orgAn)
-        {
-            Dictionary<BoneAnnotation, Matrix> transformDict = new Dictionary<BoneAnnotation, Matrix>();
-
-            for (int i = 0; i < an.bones.Count; i++)
-            {
-                var b = an.bones[i];
-                var ob = orgAn.bones[i];
-
-                float angle1 = (float)Math.Atan2(ob.dst.position.Y - ob.src.position.Y, ob.dst.position.X - ob.src.position.X);
-                float angle2 = (float)Math.Atan2(b.dst.position.Y - b.src.position.Y, b.dst.position.X - b.src.position.X);
-                angle1 = FMath.ToDegree(angle1);
-                angle2 = FMath.ToDegree(angle2);
-
-                float len1 = FMath.Distance(ob.src.position, ob.dst.position);
-                float len2 = FMath.Distance(b.src.position, b.dst.position);
-
-                if (len1 <= 1e-4)
-                {
-                    transformDict[b] = new Matrix();
-                    continue;
-                }
-
-                Matrix transform = new Matrix();
-                transform.Translate(-ob.src.position.X, -ob.src.position.Y, MatrixOrder.Append);
-                transform.Rotate(-angle1, MatrixOrder.Append);
-                transform.Scale(len2 / len1, len2 / len1, MatrixOrder.Append);
-                transform.Rotate(angle2, MatrixOrder.Append);
-                transform.Translate(b.src.position.X, b.src.position.Y, MatrixOrder.Append);
-
-                transformDict[b] = transform;
-            }
-
-            return transformDict;
-        }
-    }
 }

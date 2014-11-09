@@ -13,7 +13,6 @@ namespace Magic2D
     public partial class Form1 : Form
     {
         Dictionary<string, Bitmap> sourceImageDict = new Dictionary<string, Bitmap>();
-        Dictionary<string, Bitmap> segmentImageDict = new Dictionary<string, Bitmap>();
         Dictionary<string, Bitmap> composedImageDict = new Dictionary<string, Bitmap>();
 
         List<Operation> operationHistory = new List<Operation>();

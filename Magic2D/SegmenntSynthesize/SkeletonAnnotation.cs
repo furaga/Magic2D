@@ -12,9 +12,7 @@ using FLib;
 
 namespace Magic2D
 {
-    /// <summary>
     /// SkeletonFittingタブで作成する。骨格データおよび関節の分割線などの注釈情報
-    /// </summary>
     public class SkeletonAnnotation
     {
         public Bitmap bmp;
@@ -26,7 +24,10 @@ namespace Magic2D
         }
         public SkeletonAnnotation(SkeletonAnnotation an, bool copyBmp)
         {
-            if (copyBmp)
+            if (an == null)
+                return;
+
+            if (copyBmp && an.bmp != null)
                 this.bmp = new Bitmap(an.bmp);
 
             this.joints = new List<JointAnnotation>();
@@ -83,6 +84,11 @@ namespace Magic2D
             }
 
             return bone;
+        }
+
+        public static SkeletonAnnotation Load(string filepath)
+        {
+            return Load(filepath, null);
         }
 
         public static SkeletonAnnotation Load(string filepath, Bitmap refSkeletonBmp)
@@ -181,7 +187,14 @@ namespace Magic2D
             this.src = src;
             this.dst = dst;
         }
-        
+
+        public override string ToString()
+        {
+            if (src != null && dst != null)
+                return src.name + "->" + dst.name;
+            return base.ToString();
+        }
+
         public override int GetHashCode()
         {
             if (src == null || dst == null)

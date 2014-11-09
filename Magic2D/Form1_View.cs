@@ -36,14 +36,16 @@ namespace Magic2D
         }
         void UpdateSegmentImageView(bool reflesh)
         {
-            UpdateImageView(segmentImageDict, segmentImageList, segmentImageView, reflesh);
+            if (composition == null)
+                return;
+            UpdateImageView(composition.segmentImageDict, segmentImageList, segmentImageView, reflesh);
         }
         void UpdateComposedImageView(bool reflesh)
         {
             UpdateImageView(composedImageDict, composedImageList, composedImageView, reflesh);
         }
 
-        void UpdateImageView(Dictionary<string, Bitmap> imageDict, ImageList imageList, ListView imageView, bool reflesh)
+        public static void UpdateImageView(Dictionary<string, Bitmap> imageDict, ImageList imageList, ListView imageView, bool reflesh)
         {
             if (reflesh)
             {

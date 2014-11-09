@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Windows.Forms;
 
-namespace SegmentConnectDemo
+namespace SegmentSynthesizeDemo
 {
     static class Program
     {
@@ -15,7 +15,7 @@ namespace SegmentConnectDemo
         {
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
-            Application.Run(new FormSCD());
+            Application.Run(new Form1());
         }
     }
 }

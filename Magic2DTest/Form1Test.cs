@@ -12,6 +12,7 @@ using FLib;
 using System.Windows.Forms;
 using System.Drawing.Drawing2D;
 using System.Drawing.Imaging;
+using SegmentConnectDemo;
 
 namespace Magic2DTest
 {
@@ -86,7 +87,7 @@ namespace Magic2DTest
 
             target.Initialize();
             Assert.AreEqual(target.sourceImageDict.Count, 0);
-            Assert.AreEqual(target.segmentImageDict.Count, 0);
+            Assert.AreEqual(target.composition.segmentImageDict.Count, 0);
             Assert.AreEqual(target.composedImageDict.Count, 0);
             Assert.AreEqual(target.operationHistory.Count, 0);
             Assert.AreEqual(target.operationIndex, -1);
@@ -99,7 +100,7 @@ namespace Magic2DTest
             target.skeletonFittingCanvasPan(10, 10);
             target.Initialize();
             Assert.AreEqual(target.sourceImageDict.Count, 0);
-            Assert.AreEqual(target.segmentImageDict.Count, 0);
+            Assert.AreEqual(target.composition.segmentImageDict.Count, 0);
             Assert.AreEqual(target.composedImageDict.Count, 0);
             Assert.AreEqual(target.operationHistory.Count, 0);
             Assert.AreEqual(target.operationIndex, -1);
@@ -114,8 +115,8 @@ namespace Magic2DTest
             target.AssignImage(target.sourceImageDict, "src0", new Bitmap(10, 10, System.Drawing.Imaging.PixelFormat.Format32bppArgb), true);
             target.AssignImage(target.sourceImageDict, "src1", new Bitmap(20, 10, System.Drawing.Imaging.PixelFormat.Format32bppArgb), true);
             target.AssignImage(target.sourceImageDict, "src2", new Bitmap(30, 10, System.Drawing.Imaging.PixelFormat.Format32bppArgb), true);
-            target.AssignImage(target.segmentImageDict, "seg0", new Bitmap(10, 20, System.Drawing.Imaging.PixelFormat.Format32bppArgb), true);
-            target.AssignImage(target.segmentImageDict, "seg1", new Bitmap(20, 20, System.Drawing.Imaging.PixelFormat.Format32bppArgb), true);
+            target.AssignImage(target.composition.segmentImageDict, "seg0", new Bitmap(10, 20, System.Drawing.Imaging.PixelFormat.Format32bppArgb), true);
+            target.AssignImage(target.composition.segmentImageDict, "seg1", new Bitmap(20, 20, System.Drawing.Imaging.PixelFormat.Format32bppArgb), true);
             target.AssignImage(target.composedImageDict, "com0", new Bitmap(10, 30, System.Drawing.Imaging.PixelFormat.Format32bppArgb), true);
         }
 
@@ -133,8 +134,8 @@ namespace Magic2DTest
             Assert.AreEqual(target.sourceImageDict.Count, target.sourceImageList.Images.Count);
             Assert.AreEqual(target.sourceImageDict.Count, target.sourceImageView.Items.Count);
 
-            Assert.AreEqual(target.segmentImageDict.Count, target.segmentImageList.Images.Count);
-            Assert.AreEqual(target.segmentImageDict.Count, target.segmentImageView.Items.Count);
+            Assert.AreEqual(target.composition.segmentImageDict.Count, target.segmentImageList.Images.Count);
+            Assert.AreEqual(target.composition.segmentImageDict.Count, target.segmentImageView.Items.Count);
 
             Assert.AreEqual(target.composedImageDict.Count, target.composedImageList.Images.Count);
             Assert.AreEqual(target.composedImageDict.Count, target.composedImageView.Items.Count);
@@ -153,7 +154,7 @@ namespace Magic2DTest
             Assert.AreEqual(target.sourceImageDict.Count, 0);
 
             AssignSourceImageTestForImageDict(target, target.sourceImageDict);
-            AssignSourceImageTestForImageDict(target, target.segmentImageDict);
+            AssignSourceImageTestForImageDict(target, target.composition.segmentImageDict);
             AssignSourceImageTestForImageDict(target, target.composedImageDict);
         }
 
@@ -250,28 +251,28 @@ namespace Magic2DTest
             Form1_Accessor target = new Form1_Accessor(); // TODO: 適切な値に初期化してください
             target.Initialize();
             target.RefleshAllImageView();
-            UpdateImageViewTestForImageView(target, target.sourceImageList, target.sourceImageView);
+            UpdateImageViewTestForImageView(target.sourceImageList, target.sourceImageView);
         }
 
-        void UpdateImageViewTestForImageView(Form1_Accessor target, ImageList imageList, ListView imageView)
+        void UpdateImageViewTestForImageView(ImageList imageList, ListView imageView)
         {
             var bmp = new Bitmap(10, 10, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
-            target.UpdateImageView(new Dictionary<string, Bitmap>
+            Form1.UpdateImageView(new Dictionary<string, Bitmap>
                 {
                     {"0" , bmp}, {"1" , bmp},
                 }, imageList, imageView, false);
             CheckListViewCount(imageList, imageView, 2);
 
-            target.UpdateImageView(new Dictionary<string, Bitmap>
+            Form1.UpdateImageView(new Dictionary<string, Bitmap>
                 {
                     {"0" , bmp}, {"1" , bmp}, {"2" , bmp},
                 }, imageList, imageView, false);
             CheckListViewCount(imageList, imageView, 3);
 
-            target.UpdateImageView(new Dictionary<string, Bitmap>
+            Form1.UpdateImageView(new Dictionary<string, Bitmap>
                 {
                     {"2" , bmp},
-                }, target.sourceImageList, target.sourceImageView, true);
+                }, imageList, imageView, true);
             CheckListViewCount(imageList, imageView, 1);
         }
 
@@ -1354,6 +1355,7 @@ namespace Magic2DTest
             target.AddOperation(target.composition.SetReferenceImage(null));
             Assert.IsNull(target.composition.referenceImage);
         }
+
 
     }
 }

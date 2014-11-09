@@ -79,14 +79,19 @@
     <Compile Include="FMathTest.cs" />
     <Compile Include="Form1Test.cs" />
     <Compile Include="FormRefSkeletonTest.cs" />
+    <Compile Include="FormSCDTest.cs" />
     <Compile Include="PathSegmentTest.cs" />
+    <Compile Include="PathSubdivisionTest.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="SegmentationTest.cs" />
     <Compile Include="SegmentConnectorTest.cs" />
     <Compile Include="SegmentMeshInfoTest.cs" />
     <Compile Include="SegmentTest.cs" />
     <Compile Include="SegmentTransformTest.cs" />
+    <Compile Include="SkeletonAnnotationTest.cs" />
+    <Compile Include="SkeletonFittingTest.cs" />
     <Compile Include="TriangleTest.cs" />
+    <Compile Include="Util.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\Animator\HyperZatsukora\HyperZatsukora\FLib\FLib.csproj">
@@ -101,12 +106,19 @@
       <Project>{AC3D5F10-399E-4A84-A5BD-6721BA92E0EA}</Project>
       <Name>Magic2D</Name>
     </ProjectReference>
+    <ProjectReference Include="..\SegmentConnectDemo\SegmentConnectDemo.csproj">
+      <Project>{13EAE71B-8D7F-4F11-A47F-9B980A006285}</Project>
+      <Name>SegmentConnectDemo</Name>
+    </ProjectReference>
   </ItemGroup>
   <ItemGroup>
     <Shadow Include="テストの参照\Magic2D.accessor" />
   </ItemGroup>
   <ItemGroup>
     <Shadow Include="テストの参照\DelaunayTriangle.accessor" />
+  </ItemGroup>
+  <ItemGroup>
+    <Shadow Include="テストの参照\SegmentConnectDemo.accessor" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
